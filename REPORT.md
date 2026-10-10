@@ -4,149 +4,258 @@
 
 | Field | Details |
 | --- | --- |
-| Case Title | USB Data Theft Investigation |
-| Investigator(s) | Aaryan Sharma, Aditey Kshirsagar, Aditya Baheti |
-| Evidence Type | USB storage device / forensic image |
-| Tools Demonstrated | Foremost, ExifTool, srch_strings / Strings |
-| Platform | Kali Linux |
-| Objective | Determine whether sensitive data was copied to or stored on a USB device and recover relevant evidence. |
+| Case ID | USB-2026-001 |
+| Case Title | Digital Forensic Investigation of Suspected Data Theft Through a USB Device |
+| Investigators | Aaryan Sharma, Aditey Kshirsagar, Aditya Baheti |
+| Evidence | `usb_evidence.raw`: 50 MiB FAT32 image of the seized USB drive (synthetic) |
+| Tools Demonstrated | Strings, Foremost, ExifTool |
+| Platform | Kali Linux Rolling on WSL 2 |
+| Examination Date | 10 October 2026 |
+| Verdict | Evidence **supports** the allegation that confidential data was stored on the USB device and deleted before seizure |
 
-## 2. Investigation Scenario
+## 2. Executive Summary
 
-An organization suspects that confidential files were copied from an internal system to a removable USB device. The USB device is seized and imaged. The original evidence is preserved, and all analysis is performed on a forensic image copy.
+The seized USB drive showed only two harmless files: a personal note and a
+holiday photo. Analysis of the raw image found a deleted PDF titled
+**CONFIDENTIAL INTERNAL AUDIT REPORT 2026**, authored by the **Corporate
+Finance Directorate** and tagged **Project_Aurora, InternalOnly**.
 
-The investigation follows a standard forensic procedure:
+- **Strings** found the confidential title, author and keywords at known byte
+  offsets on the drive.
+- **Foremost** recovered the deleted PDF and the decoy PNG from the image.
+- **ExifTool** found no metadata in the recovered PDF. Cross-checking showed
+  why: Foremost recovered only the document's first revision. The metadata
+  update that followed it on disk was confirmed by Strings.
 
-1. Identification of evidence.
-2. Preservation and hashing.
-3. Acquisition of forensic image.
-4. Examination with Kali tools.
-5. Analysis of recovered artifacts.
-6. Reporting and presentation.
+Together the three tools show that a confidential organisational document was
+present on the USB device and was deleted to hide it.
 
-## 3. Scope
+## 3. Investigation Scenario
 
-The scope is limited to analyzing the USB forensic image for:
+A company suspects that an employee copied confidential organisational
+documents to a USB storage device without authorisation. The device is seized
+and preserved as digital evidence. The investigation must identify relevant
+files, examine their properties and contents, recover deleted information, and
+correlate the evidence to decide whether unauthorised data transfer occurred.
 
-- Deleted or hidden files.
-- Recoverable documents, images, PDFs, or archives.
-- File metadata such as timestamps, author names, device/software traces, and GPS or camera data where applicable.
-- Plaintext indicators such as usernames, project names, passwords, email addresses, internal filenames, or confidential keywords.
+## 4. Scope and Objectives
 
-## 4. Evidence Handling
+- Identify confidential indicators on the device, including in deleted and
+  unallocated areas.
+- Recover deleted files without relying on the filesystem.
+- Extract metadata that shows document origin, classification and dates.
+- Correlate results across tools and reach a supported conclusion.
 
-| Item ID | Description | Source | Hash Algorithm | Hash Value | Status |
-| --- | --- | --- | --- | --- | --- |
-| E01 | USB drive forensic image | Seized USB | SHA256 | `<insert hash>` | Working copy analyzed |
+Out of scope: host-side artefacts (registry USB history, LNK files), which
+would be needed to prove *who* copied the data and *when*.
 
-Recommended hashing commands:
+## 5. Forensic Procedure
 
+| Phase | Action in this case |
+| --- | --- |
+| Identification | USB drive identified as evidence item E01 |
+| Acquisition | Bit-for-bit image `usb_evidence.raw` (52,428,800 bytes) |
+| Preservation | SHA-256 recorded before analysis; image unmounted and loop device detached; only read-only tools used |
+| Examination | Strings (raw keyword search), Foremost (carving), ExifTool (metadata) |
+| Analysis | Offsets, hashes and metadata correlated across tools |
+| Documentation | Command log, hash records, audit file, metadata reports, screenshots, this report |
+
+## 6. Evidence Preparation (Synthetic Case Data)
+
+No real evidence is used. The seized drive was simulated as follows (full
+commands in `COMMANDS.md`):
+
+1. A 50 MiB blank image was formatted FAT32 (label `EVIDENCE`) and mounted.
+2. Two decoy files were written: `personal_notes.txt` (65 B) and
+   `beach_trip.png` (69 B, 1×1 pixel).
+3. A confidential PDF `Internal_Financial_Audit_2026.pdf` was generated, and
+   ExifTool added its metadata (Title, Author, Subject, Keywords, CreateDate).
+   The file grew from 616 B to 4,569 B.
+4. The PDF was copied to the drive and then deleted with `rm`, simulating the
+   suspect hiding it.
+5. The image was unmounted and hashed.
+
+After deletion, a normal directory listing shows only the two decoy files.
+
+## 7. Evidence Handling and Integrity
+
+| Item | Description | SHA-256 | Status |
+| --- | --- | --- | --- |
+| E01 | `usb_evidence.raw`: seized USB image | `74f073eb8c47789fd0adde67fd64d49da643bb6115968fe082fc8bccb2611afc` | Verified unchanged after analysis |
+| R01 | `output/foremost_recovered/pdf/00001611.pdf`: recovered PDF | `6001609b248c93aab88abc73f02207c18217009157b61162db9bcc543ab29275` | Verified (`sha256sum -c`: OK) |
+| R02 | `output/foremost_recovered/png/00001610.png`: recovered PNG | `fdf040aaee9270aef6cf03752d51615cf6025c72081820fe0945f0c9c9cbdd9c` | Verified (`sha256sum -c`: OK) |
+| REF01 | `/tmp/Internal_Financial_Audit_2026.pdf`: company's original document (reference copy) | `cec3f6868336b0495c8216dc6bfd90e1c48c2052be6f2884c473c8c8e9ad454c` | Reference only |
+
+Hash records: `evidence/evidence_integrity.sha256`,
+`evidence/recovered_files.sha256`, `evidence/final_hashes.sha256`.
+
+## 8. Tool 1: Strings
+
+**Purpose.** Extracts printable text from any binary file. On a raw image it
+reads deleted and unallocated data that the filesystem no longer shows.
+
+**Commands.**
 ```bash
-sha256sum evidence/usb_image.dd
-md5sum evidence/usb_image.dd
+strings -a -t d usb_evidence.raw > output/all_strings.txt
+grep -iE 'confidential|project_aurora|audit|finance|InternalOnly' output/all_strings.txt
+```
+`-a` scans the whole file; `-t d` prints each string's decimal byte offset.
+
+**Results.** Nine hits, including:
+
+| Offset | String |
+| --- | --- |
+| 825111 | `(Synthetic Confidential Audit Report)` (page text) |
+| 825545 | `/Author (Corporate Finance Directorate)` |
+| 825618 | `/Keywords (Project_Aurora, InternalOnly)` |
+| 825659 | `/Subject (Synthetic Project Aurora Audit)` |
+| 825701 | `/Title (CONFIDENTIAL INTERNAL AUDIT REPORT 2026)` |
+| 826121–826492 | Same values repeated in an XMP metadata packet |
+
+**Analysis.** Confidential-classification text is physically present on a
+drive whose visible files are harmless. This is the first indicator of hidden
+or deleted content. Details: `tools/strings.md`.
+
+**Screenshots.** 05, 06
+
+## 9. Tool 2: Foremost
+
+**Purpose.** Recovers files by their header/footer signatures, independent of
+the filesystem, so deleted files can be restored.
+
+**Command.**
+```bash
+foremost -v -t pdf,png -i usb_evidence.raw -o output/foremost_recovered
 ```
 
-The original USB device should remain write-protected. Analysis should be performed only on a verified working copy.
+**Results.**
 
-## 5. Tool 1: Foremost
+| File | Size | Offset | Meaning |
+| --- | --- | --- | --- |
+| `pdf/00001611.pdf` | 616 B | 824832 (sector 1611) | Deleted PDF, not visible on the drive |
+| `png/00001610.png` | 69 B | 824320 (sector 1610) | Visible decoy `beach_trip.png` (PNG signature verified with `xxd`) |
 
-### Purpose
+**Analysis.** Foremost recovered a PDF that the directory listing does not
+show, which proves a document was deleted from the drive. The recovered PDF is
+616 bytes, but the original was 4,569 bytes. This is explained in Section 11.
+Details: `tools/foremost.md`.
 
-Foremost is used to recover deleted or embedded files from a disk image by scanning for known file headers, footers, and internal file structures.
+**Screenshots.** 07, 08, 09, 10
 
-### Demonstration Commands
+## 10. Tool 3: ExifTool
 
+**Purpose.** Reads embedded metadata (PDF Info, XMP, EXIF) for attribution and
+timeline evidence.
+
+**Commands.**
 ```bash
-mkdir -p output/foremost
-foremost -v -t jpg,png,pdf,doc,xls,zip -i evidence/usb_image.dd -o output/foremost
-ls -R output/foremost
-cat output/foremost/audit.txt
+exiftool output/foremost_recovered/pdf/00001611.pdf
+exiftool -Title -Author -Subject -Keywords -CreateDate output/foremost_recovered/pdf/00001611.pdf
+exiftool output/foremost_recovered/png/00001610.png
 ```
 
-### Expected Screenshots
+**Results.**
+- Recovered PDF: PDF 1.4, 1 page, not linearised. **No** Title, Author,
+  Subject, Keywords or CreateDate.
+- Recovered PNG: 1×1, 8-bit RGB, no embedded metadata.
+- The `File Modification Date/Time` (2026-10-10 18:03:53 IST) is when Foremost
+  wrote the recovered file, not when the document was created.
 
-- Foremost command execution.
-- Output directory showing recovered file categories.
-- `audit.txt` showing carved file summary.
-- Sample recovered file preview.
+**Analysis.** An empty metadata result is itself a finding that needs an
+explanation. It led to the cross-tool correlation in Section 11. Details:
+`tools/exiftool.md`.
 
-### Analysis
+**Screenshots.** 11, 12, 13
 
-Foremost helps identify deleted or hidden files that are no longer visible in the normal filesystem. Recovered files should be compared with the case keywords and reviewed for sensitive company data. The `audit.txt` file is important because it records recovered file names, offsets, and extraction results.
+## 11. Correlation: Why the Recovered PDF Has No Metadata
 
-## 6. Tool 2: ExifTool
+1. ExifTool saves PDF metadata as an **incremental update**: it appends a new
+   Info dictionary, an XMP packet and a new cross-reference table, ending in a
+   second `%%EOF`. The original document is therefore two revisions back to
+   back:
 
-### Purpose
+   | Bytes on disk | Content |
+   | --- | --- |
+   | 824832 – 825447 | Revision 1: page content, ends with the first `%%EOF` |
+   | 825448 – 829400 | Revision 2: ExifTool's Info dictionary + XMP, ends with the second `%%EOF` |
 
-ExifTool extracts metadata from files. In a USB theft case, metadata may reveal author names, software used, creation and modification dates, device information, camera details, or document history.
+2. Foremost stops a PDF at the **first** `%%EOF`, so it recovered only
+   revision 1: 824832 + 616 = 825448.
+3. The trailer of the recovered file is `<< /Size 6 /Root 1 0 R >>`. It has no
+   `/Info` entry, which is why ExifTool reported no document metadata.
+4. Strings found the metadata at offsets **825545–826492**, which is inside
+   revision 2, immediately after Foremost's carve. The metadata is on the
+   drive; carving missed it.
+5. The first 616 bytes of the original document hash to `6001609b…9275`, the
+   exact hash of the recovered file. So the recovered PDF is genuine and
+   unaltered, just incomplete.
 
-### Demonstration Commands
+**Follow-up (verified on a replica image, to be run on Kali).** Carving from
+the PDF header to the second `%%EOF` (4,569 bytes) recovers a file whose
+SHA-256 equals the company's original document (`cec3f686…454c`), and
+ExifTool then shows the full Title, Author, Subject, Keywords and CreateDate.
+Commands: `COMMANDS.md` section 9.
 
-```bash
-exiftool output/foremost/pdf/*.pdf
-exiftool output/foremost/jpg/*.jpg
-exiftool -csv output/foremost/*/* > output/exiftool_metadata.csv
-```
+## 12. Timeline
 
-### Expected Screenshots
+| Date/Time (IST) | Event | Source |
+| --- | --- | --- |
+| 2026-09-15 10:30:00 | Confidential audit report created | PDF metadata (CreateDate) of the reference copy, via ExifTool |
+| 2026-10-10 18:02 | `personal_notes.txt` and `beach_trip.png` written to the drive | Directory listing during preparation |
+| 2026-10-10 18:03 | `Internal_Financial_Audit_2026.pdf` written to the drive, then deleted | Directory listing before and after `rm` |
+| 2026-10-10 (after unmount) | Image sealed, SHA-256 `74f073eb…2611afc` recorded | `evidence/evidence_integrity.sha256` |
+| 2026-10-10 18:03:53 | Foremost recovers the PDF and PNG | `evidence/foremost_audit.txt` |
+| 2026-10-10 (end of session) | Image hash re-verified, unchanged | `evidence/final_hashes.sha256` |
 
-- Metadata extraction from one recovered file.
-- CSV export command.
-- Metadata fields showing timestamps, author/software, or device information.
+## 13. Findings
 
-### Analysis
-
-Metadata can support the timeline of data movement. For example, a recovered document with an internal author field, recent modification timestamp, or software path may link the file to a suspect user or workstation. Image metadata may expose camera model, GPS data, or creation date.
-
-## 7. Tool 3: srch_strings / Strings
-
-### Purpose
-
-`srch_strings` from Sleuth Kit, or GNU `strings`, extracts printable text from binary files and disk images. This helps locate keywords, URLs, usernames, passwords, document titles, and other readable evidence.
-
-### Demonstration Commands
-
-```bash
-mkdir -p output/strings
-srch_strings -a -t d evidence/usb_image.dd > output/strings/usb_strings.txt
-grep -iE "confidential|password|project|invoice|client|secret" output/strings/usb_strings.txt
-strings -a evidence/usb_image.dd | grep -iE "confidential|password|project|invoice|client|secret"
-```
-
-### Expected Screenshots
-
-- Strings extraction command.
-- Keyword search results.
-- A text snippet showing relevant evidence.
-
-### Analysis
-
-Printable strings are useful when files are fragmented, deleted, or embedded in unallocated space. Keyword hits should be treated as leads and verified against recovered files, metadata, and filesystem timestamps.
-
-## 8. Timeline Template
-
-| Date/Time | Event | Source | Tool Used | Notes |
+| ID | Evidence | Tool | Observation | Significance |
 | --- | --- | --- | --- | --- |
-| `<insert>` | USB image acquired | Evidence log | sha256sum | Hash recorded |
-| `<insert>` | Files carved | USB image | Foremost | Recovered PDFs/images/docs |
-| `<insert>` | Metadata extracted | Recovered files | ExifTool | Author/timestamps reviewed |
-| `<insert>` | Keywords found | Disk image | srch_strings | Sensitive terms identified |
+| F01 | Raw image | Strings | Title "CONFIDENTIAL INTERNAL AUDIT REPORT 2026", Author "Corporate Finance Directorate", Keywords "Project_Aurora, InternalOnly" at offsets 825545–826492 | Confidential company data is physically present on the drive |
+| F02 | Raw image | Foremost | Deleted PDF recovered at offset 824832; PNG decoy at 824320 | A document was deleted from the drive to hide it |
+| F03 | Recovered PDF | ExifTool | No document metadata in the 616-byte recovered file | Carving was incomplete, not a sign of a clean file |
+| F04 | Offsets + hashes | Strings + Foremost + ExifTool | Metadata lies directly after the carve end; recovered file = first 616 bytes of the original | Links the recovered file and the metadata to the same confidential document |
+| F05 | Raw image | sha256sum | Image hash identical before and after analysis | Evidence integrity preserved |
 
-## 9. Findings
+## 14. Conclusion
 
-| Finding ID | Evidence | Tool | Observation | Significance |
-| --- | --- | --- | --- | --- |
-| F01 | Recovered files | Foremost | `<insert recovered file count and types>` | Indicates deleted/hidden files may have existed on USB |
-| F02 | Metadata | ExifTool | `<insert author/time/device metadata>` | Supports attribution and timeline |
-| F03 | Keyword strings | srch_strings | `<insert keyword hits>` | Supports presence of sensitive data |
+The visible contents of the USB drive were harmless decoys. The three tools
+together show that a confidential document belonging to the Corporate Finance
+Directorate (Project Aurora, internal-only) was stored on the device and then
+deleted:
 
-## 10. Conclusion
+- Strings located the confidential title, author and keywords on the media.
+- Foremost recovered the deleted document itself.
+- ExifTool's empty result, correlated with Strings offsets and hashes, showed
+  the recovered file is the genuine first revision of that document.
 
-The investigation demonstrates that Kali Linux forensic tools can recover deleted data, extract metadata, and identify readable evidence from a USB forensic image. The final conclusion should state whether the USB contained confidential data, whether recovered artifacts match the suspected data theft, and what evidence supports the finding.
+**Verdict: the evidence supports the allegation that confidential
+organisational data was copied to the USB device and deleted before seizure.**
 
-## 11. Limitations
+These artefacts alone do not identify *who* copied the file or *when*. That
+would require host-side evidence (USB connection history, user logon records).
 
-- Carved files may be incomplete if overwritten or fragmented.
-- Metadata can be modified and should not be used alone for attribution.
-- String matches are leads and require validation.
-- A full forensic conclusion requires original evidence hashes, screenshots, recovered artifact review, and timeline correlation.
+## 15. Limitations
+
+- All data is synthetic and was created for this lab.
+- Signature carving can truncate files that have several end markers (as here)
+  or that are fragmented.
+- Metadata can be edited and supports attribution only alongside other evidence.
+- Strings hits are leads that must be tied to recovered files or offset ranges.
+- The full-file recovery in Section 11 is verified on a replica image and must
+  be repeated on the Kali image before submission.
+
+## Appendix A: Tool Versions
+
+| Tool | Package | Version |
+| --- | --- | --- |
+| Strings | binutils | GNU strings (GNU Binutils for Debian) 2.47 |
+| Foremost | foremost | 1.5.7 |
+| ExifTool | libimage-exiftool-perl | 13.55 |
+
+## Appendix B: Supporting Files
+
+- `COMMANDS.md`: full command log with outputs
+- `tools/strings.md`, `tools/foremost.md`, `tools/exiftool.md`: per-tool detail
+- `CHAIN_OF_CUSTODY.md`: custody and examination forms
+- `SCREENSHOT_CHECKLIST.md`: screenshot index

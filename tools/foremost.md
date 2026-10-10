@@ -1,59 +1,99 @@
-# Foremost File-Carving Investigation
+# Foremost — File Carving
 
-## Objective
-Recover recognizable file artifacts from a synthetic FAT forensic image.
+## Purpose
+Foremost recovers files from a disk image by searching for known file headers,
+footers and internal structures. It does not use the FAT directory or the
+allocation table, so it recovers deleted files as long as their clusters have
+not been overwritten.
 
-## Input
-- Image: evidence/original/usb_image.dd
-- Image size: 67,108,864 bytes (64 MiB)
-- SHA-256: 5d4fbaf50a436c1129bab8a0e666dfab610ea38497feb179581b2a4087602deb
+## Tool Details
+- Package: `foremost` (Kali: Forensics › Forensic Carving Tools)
+- Version: 1.5.7
+- Configuration file: `/etc/foremost.conf`
+- Input: `usb_evidence.raw` (52,428,800 bytes)
+- Output: `output/foremost_recovered/`
+
+## Options Used
+| Option | Meaning |
+| --- | --- |
+| `-v` | Verbose: print the audit summary to the terminal |
+| `-t pdf,png` | Carve only PDF and PNG signatures |
+| `-i` | Input image |
+| `-o` | Output directory (must be empty or not exist) |
+
+Note: `docx` is not a valid Foremost type. Office 2007+ files are recovered
+with `-t zip`.
 
 ## Command
-foremost -t png,zip -i evidence/original/usb_image.dd -o evidence/recovered/foremost-all
+```bash
+foremost -v \
+  -t pdf,png \
+  -i usb_evidence.raw \
+  -o output/foremost_recovered
+```
 
-## Results
-- PNG artifacts recovered: 1
-- ZIP artifacts recovered: 1
-- Recovered PNG size: 292 bytes
-- Recovered PNG offset: 153,600 bytes
-- Recovered ZIP size: 673 bytes
-- Recovered ZIP offset: 155,648 bytes
-- PNG validation: passed, 100 x 100 pixels
-- ZIP validation: pending
+## Results (`audit.txt`)
+```text
+Num      Name (bs=512)         Size      File Offset     Comment
+0:      00001611.pdf          616 B          824832
+1:      00001610.png           69 B          824320       (1 x 1)
+
+2 FILES EXTRACTED
+pdf:= 1
+png:= 1
+```
+
+Foremost names each file after the 512-byte sector where it starts:
+824832 / 512 = sector 1611, and 824320 / 512 = sector 1610.
+
+| Recovered file | Size | Offset | SHA-256 |
+| --- | --- | --- | --- |
+| `pdf/00001611.pdf` | 616 B | 824832 | `6001609b248c93aab88abc73f02207c18217009157b61162db9bcc543ab29275` |
+| `png/00001610.png` | 69 B | 824320 | `fdf040aaee9270aef6cf03752d51615cf6025c72081820fe0945f0c9c9cbdd9c` |
+
+PNG signature check:
+```bash
+xxd -l 16 output/foremost_recovered/png/00001610.png
+# 00000000: 8950 4e47 0d0a 1a0a 0000 000d 4948 4452  .PNG........IHDR
+```
 
 ## Interpretation
-Foremost identified two artifacts using file signatures. The PNG is consistent
-with the deliberately deleted test image in this synthetic lab. The ZIP was
-also recovered, but its contents and integrity must be checked separately.
+- The PDF is not visible on the drive but was recovered, so it was deleted
+  before seizure. The PNG is the visible decoy `beach_trip.png`. Foremost
+  recovers allocated and deleted files alike.
+- **The recovered PDF is incomplete.** The prepared original was 4,569 bytes
+  (SHA-256 `cec3f686…454c`) but Foremost recovered 616 bytes (`6001609b…9275`).
+  ExifTool saved the document metadata as a PDF *incremental update*, which
+  appends a second section ending in its own `%%EOF`. Foremost stops at the
+  first `%%EOF` (offset 825442), so it recovered only the original first
+  revision, which has no metadata.
+- The first 616 bytes of the original file hash to exactly `6001609b…9275`,
+  which confirms the recovered file is the untouched first revision.
 
-This is a controlled demonstration. These results do not independently prove
-that real-world USB data theft occurred.
+## Follow-up: Recover the Complete PDF
+Carving from the PDF header to the last `%%EOF` recovers the whole file. These
+commands were verified on a replica image built with the same preparation
+steps. Run them on the Kali image and capture screenshots before submission.
 
-## Output
-- evidence/recovered/foremost-all/audit.txt
-- evidence/recovered/foremost-all/png/00000300.png
-- evidence/recovered/foremost-all/zip/00000304.zip
+```bash
+grep -abo '%%EOF' usb_evidence.raw
+# 825442:%%EOF   <- end of first revision (where Foremost stopped)
+# 829395:%%EOF   <- end of the ExifTool update
 
-## ZIP Validation
-Command: unzip -t evidence/recovered/foremost-all/zip/00000304.zip
-Result: No errors detected in compressed data.
-Contents:
-- case/sample-files/project-alpha.txt (160 bytes)
-- case/sample-files/employee-records.txt (114 bytes)
+# length = 829395 + 6 ("%%EOF\n") - 824832 = 4569 bytes
+mkdir -p output/manual_carve
+dd if=usb_evidence.raw of=output/manual_carve/audit_report_full.pdf \
+  bs=1 skip=824832 count=4569
 
-## Targeted PNG Scan
-Command:
-foremost -t png -i evidence/original/usb_image.dd -o evidence/recovered/foremost-targeted
+sha256sum output/manual_carve/audit_report_full.pdf
+# expected: cec3f6868336b0495c8216dc6bfd90e1c48c2052be6f2884c473c8c8e9ad454c
+```
 
-Result:
-- One PNG recovered
-- Size: 292 bytes
-- Offset: 153,600 bytes
-- Image dimensions: 100 x 100
-- The targeted scan recovered the same PNG as the full scan.
+A match with the original document's hash is the strongest possible link
+between the USB and the confidential file.
 
-## Recovered Artifact Hashes
-- PNG: 74478068ef7c8eb3b688d3613835f61e64d1a345b0f60a38b1b65a10d0012d96
-- ZIP: 2f4a85d97eeccf6cfed5b879805c808b91d1bbb6fa44696e43015bc0ce46896e
-
-Both recovered artifact hashes passed SHA-256 verification.
+## Limitations
+- Header/footer carving can truncate files that contain multiple footers
+  (as here) or that are fragmented.
+- Carving gives no filenames or timestamps. These come from the filesystem or
+  from embedded metadata.

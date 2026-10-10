@@ -1,3 +1,5 @@
 Evidence ID,Filename,Description,Source,SHA-256,Storage Path
-E-001,usb_image.dd,Synthetic FAT USB image,Controlled lab creation,,evidence/original/usb_image.dd
-E-002,confidential-sample.zip,Synthetic sample archive,Controlled lab creation,,evidence/original/confidential-sample.zip
+E01,usb_evidence.raw,Synthetic 50 MiB FAT32 USB image (seized drive),Controlled lab creation,74f073eb8c47789fd0adde67fd64d49da643bb6115968fe082fc8bccb2611afc,usb_evidence.raw
+R01,00001611.pdf,Deleted confidential PDF recovered by Foremost (first revision; 616 bytes),Carved from E01 at offset 824832,6001609b248c93aab88abc73f02207c18217009157b61162db9bcc543ab29275,output/foremost_recovered/pdf/00001611.pdf
+R02,00001610.png,Decoy image beach_trip.png recovered by Foremost (69 bytes),Carved from E01 at offset 824320,fdf040aaee9270aef6cf03752d51615cf6025c72081820fe0945f0c9c9cbdd9c,output/foremost_recovered/png/00001610.png
+REF01,Internal_Financial_Audit_2026.pdf,Original confidential document (reference copy; 4569 bytes),Prepared during lab setup,cec3f6868336b0495c8216dc6bfd90e1c48c2052be6f2884c473c8c8e9ad454c,/tmp/Internal_Financial_Audit_2026.pdf

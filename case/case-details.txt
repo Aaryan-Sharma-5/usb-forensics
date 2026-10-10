@@ -1,12 +1,18 @@
 Case ID: USB-2026-001
-Case Title: USB Data Theft Investigation
+Case Title: Digital Forensic Investigation of Suspected Data Theft Through a USB Device
 Investigator 1: Aaryan Sharma
 Investigator 2: Aditey Kshirsagar
 Investigator 3: Aditya Baheti
 Investigation Type: Simulated Digital Forensics
-Evidence Source: Synthetic FAT filesystem image
-Primary Tool: Foremost
-Secondary Tool: Rizin
-Network Analysis Tool: Wireshark/TShark
-Objective: Demonstrate forensic examination of a simulated USB image,
-static binary analysis, and controlled network packet analysis.
+Examination Date: 2026-10-10
+Evidence Source: Synthetic 50 MiB FAT32 USB image (usb_evidence.raw)
+Evidence SHA-256: 74f073eb8c47789fd0adde67fd64d49da643bb6115968fe082fc8bccb2611afc
+Tool 1: Strings (GNU Binutils 2.47) - raw keyword search
+Tool 2: Foremost 1.5.7 - file carving
+Tool 3: ExifTool 13.55 - metadata extraction
+Objective: Determine whether artefacts on the seized USB device support the
+allegation that confidential organisational documents were copied to it
+without authorisation.
+Verdict: Evidence supports the allegation. A deleted confidential PDF
+(CONFIDENTIAL INTERNAL AUDIT REPORT 2026, Corporate Finance Directorate,
+Project_Aurora) was recovered from a drive showing only decoy files.
