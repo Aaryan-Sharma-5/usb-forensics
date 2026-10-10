@@ -1,0 +1,5 @@
+SIMULATED FORENSIC EVIDENCE
+Case: USB-2026-001
+Document: Project Alpha
+Classification: Fictional confidential sample
+Purpose: Educational forensic testing only

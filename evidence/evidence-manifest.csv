@@ -1,0 +1,3 @@
+Evidence ID,Filename,Description,Source,SHA-256,Storage Path
+E-001,usb_image.dd,Synthetic FAT USB image,Controlled lab creation,,evidence/original/usb_image.dd
+E-002,confidential-sample.zip,Synthetic sample archive,Controlled lab creation,,evidence/original/confidential-sample.zip

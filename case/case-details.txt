@@ -1,0 +1,12 @@
+Case ID: USB-2026-001
+Case Title: USB Data Theft Investigation
+Investigator 1: Aaryan Sharma
+Investigator 2: Aditey Kshirsagar
+Investigator 3: Aditya Baheti
+Investigation Type: Simulated Digital Forensics
+Evidence Source: Synthetic FAT filesystem image
+Primary Tool: Foremost
+Secondary Tool: Rizin
+Network Analysis Tool: Wireshark/TShark
+Objective: Demonstrate forensic examination of a simulated USB image,
+static binary analysis, and controlled network packet analysis.

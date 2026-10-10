@@ -1,0 +1,30 @@
+=== CASE ENVIRONMENT ===
+2026-10-10T15:54:04+05:30
+PRETTY_NAME="Kali GNU/Linux Rolling"
+NAME="Kali GNU/Linux"
+VERSION_ID="2026.3"
+VERSION="2026.3"
+VERSION_CODENAME=kali-rolling
+ID=kali
+ID_LIKE=debian
+HOME_URL="https://www.kali.org/"
+SUPPORT_URL="https://forums.kali.org/"
+BUG_REPORT_URL="https://bugs.kali.org/"
+ANSI_COLOR="1;31"
+=== FOREMOST ===
+1.5.7
+This program is a work of the US Government. In accordance with 17 USC 105,
+copyright protection is not available for any work of the US Government.
+This is free software; see the source for copying conditions. There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+=== STRINGS ===
+GNU strings (GNU Binutils for Debian) 2.47
+=== EXIFTOOL ===
+13.55
+=== RIZIN ===
+rizin 0.9.1 @ linux-x86-64
+=== TSHARK ===
+TShark (Wireshark) 4.6.6.
+
+=== GIT ===
+git version 2.53.0

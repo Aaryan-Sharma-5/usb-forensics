@@ -1,0 +1,25 @@
+Foremost version 1.5.7 by Jesse Kornblum, Kris Kendall, and Nick Mikus
+Audit File
+
+Foremost started at Sat Oct 10 16:02:12 2026
+Invocation: foremost -t png,zip -i evidence/original/usb_image.dd -o evidence/recovered/foremost-all 
+Output directory: /home/aaryan/usb-forensics/evidence/recovered/foremost-all
+Configuration file: /etc/foremost.conf
+------------------------------------------------------------------
+File: evidence/original/usb_image.dd
+Start: Sat Oct 10 16:02:12 2026
+Length: 64 MB (67108864 bytes)
+ 
+Num	 Name (bs=512)	       Size	 File Offset	 Comment 
+
+0:	00000300.png 	      292 B 	     153600 	  (100 x 100)
+1:	00000304.zip 	      673 B 	     155648 	 
+Finish: Sat Oct 10 16:02:12 2026
+
+2 FILES EXTRACTED
+	
+png:= 1
+zip:= 1
+------------------------------------------------------------------
+
+Foremost finished at Sat Oct 10 16:02:12 2026

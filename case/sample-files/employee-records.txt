@@ -1,0 +1,5 @@
+SIMULATED DATASET
+Employee: EMP-001
+Department: Engineering
+Salary: INR 50000
+All data in this file is fictional.
