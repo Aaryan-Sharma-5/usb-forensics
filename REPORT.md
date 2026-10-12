@@ -19,7 +19,7 @@ The synthetic USB filesystem image showed only two files after the simulated del
 
 - **Strings** found the confidential title, author and keywords at known byte
   offsets on the drive.
-- **Foremost** recovered the deleted PDF and the decoy PNG from the image.
+- **Foremost** recovered a 616-byte PDF fragment and the decoy PNG from the image.
 - **ExifTool** found no metadata in the recovered PDF. Cross-checking showed
   why: Foremost recovered only the document's first revision. The metadata
   update that followed it on disk was confirmed by Strings.
@@ -28,11 +28,7 @@ Together the three tools demonstrate how confidential-themed artifacts from a sy
 
 ## 3. Investigation Scenario
 
-A company suspects that an employee copied confidential organisational
-documents to a USB storage device without authorisation. The device is seized
-and preserved as digital evidence. The investigation must identify relevant
-files, examine their properties and contents, recover deleted information, and
-correlate the evidence to decide whether unauthorised data transfer occurred.
+The scenario is framed as a company suspecting unauthorized copying of confidential organisational documents to a USB storage device. For this exercise, the device is simulated as a filesystem image; no real employee or physical device is under investigation. The workflow demonstrates identifying relevant artifacts, examining file properties and contents, recovering deleted data, and correlating findings.
 
 ## 4. Scope and Objectives
 
@@ -58,8 +54,7 @@ would be needed to prove *who* copied the data and *when*.
 
 ## 6. Evidence Preparation (Synthetic Case Data)
 
-No real evidence is used. The seized drive was simulated as follows (full
-commands in `COMMANDS.md`):
+No real evidence is used. The synthetic USB filesystem image was prepared as follows (full commands in `COMMANDS.md`):
 
 1. A 50 MiB blank image was formatted FAT32 (label `EVIDENCE`) and mounted.
 2. Two decoy files were written: `personal_notes.txt` (65 B) and
@@ -67,8 +62,7 @@ commands in `COMMANDS.md`):
 3. A confidential PDF `Internal_Financial_Audit_2026.pdf` was generated, and
    ExifTool added its metadata (Title, Author, Subject, Keywords, CreateDate).
    The file grew from 616 B to 4,569 B.
-4. The PDF was copied to the drive and then deleted with `rm`, simulating the
-   suspect hiding it.
+4. The PDF was copied to the image and then deleted with `rm`, simulating a deletion event. No motive is inferred from this controlled step.
 5. The image was unmounted and hashed.
 
 After deletion, a normal directory listing shows only the two decoy files.
@@ -108,9 +102,7 @@ grep -iE 'confidential|project_aurora|audit|finance|InternalOnly' output/all_str
 | 825701 | `/Title (CONFIDENTIAL INTERNAL AUDIT REPORT 2026)` |
 | 826121–826492 | Same values repeated in an XMP metadata packet |
 
-**Analysis.** Confidential-classification text is physically present on a
-drive whose visible files are harmless. This is the first indicator of hidden
-or deleted content. Details: `tools/strings.md`.
+**Analysis.** Confidential-themed text from the synthetic document is physically present in the raw image even though those values are not visible in the post-deletion directory listing. This is an indicator that directs further examination, not proof of a real incident. Details: `tools/strings.md`.
 
 **Screenshots.** 05, 06
 
@@ -131,9 +123,7 @@ foremost -v -t pdf,png -i usb_evidence.raw -o output/foremost_recovered
 | `pdf/00001611.pdf` | 616 B | 824832 (sector 1611) | Deleted PDF, not visible on the drive |
 | `png/00001610.png` | 69 B | 824320 (sector 1610) | Visible decoy `beach_trip.png` (PNG signature verified with `xxd`) |
 
-**Analysis.** Foremost recovered a PDF that the directory listing does not
-show, which proves a document was deleted from the drive. The recovered PDF is
-616 bytes, but the original was 4,569 bytes. This is explained in Section 11.
+**Analysis.** Foremost recovered a 616-byte PDF fragment that does not appear in the post-deletion directory listing. In this synthetic exercise, that is consistent with the simulated deletion. The prepared reference document is 4,569 bytes; the difference is examined in Section 11.
 Details: `tools/foremost.md`.
 
 **Screenshots.** 07, 08, 09, 10
@@ -215,19 +205,15 @@ Commands: `COMMANDS.md` section 9.
 
 ## 14. Conclusion
 
-The visible contents of the USB drive were harmless decoys. The three tools
-together show that a confidential document belonging to the Corporate Finance
-Directorate (Project Aurora, internal-only) was stored on the device and then
-deleted:
+This controlled laboratory exercise demonstrates how raw-string analysis, file carving, metadata inspection and hash verification can be combined to examine a synthetic USB filesystem image.
 
-- Strings located the confidential title, author and keywords on the media.
-- Foremost recovered the deleted document itself.
-- ExifTool's empty result, correlated with Strings offsets and hashes, showed
-  the recovered file is the genuine first revision of that document.
+- **Strings** located confidential-themed title, author, subject and keyword strings in the raw image.
+- **Foremost** recovered a 616-byte PDF fragment and a 69-byte PNG.
+- **ExifTool** identified the recovered PDF as a one-page PDF 1.4 file but reported none of the target descriptive metadata in that fragment.
+- Cross-checking offsets and the PDF structure showed that the metadata strings occur after the first PDF end marker, consistent with the fragment representing only the first revision.
+- Hash records identify the image and recovered artifacts; the baseline image hash should be re-verified against the saved record.
 
-**Conclusion:** This controlled laboratory exercise demonstrates that raw-string searching, file carving, metadata inspection and hash verification can be combined to examine a synthetic USB filesystem image. Strings found confidential-themed text and metadata values in the raw image; Foremost recovered a 616-byte PDF fragment and a PNG; ExifTool reported the properties available in those recovered artifacts. The metadata values were located beyond the first PDF end marker, consistent with Foremost carving only the first revision of the synthetic PDF.
-
-The image and files are synthetic. The results do not establish that a real employee copied data, that a real transfer occurred, or that deletion was intended to conceal activity. Attributing a real incident would require independently collected evidence such as host-side USB connection history, user logon records, and a verified acquisition process.
+The image and documents are synthetic. These findings do not establish a real unauthorized transfer, identify a responsible person, or prove that deletion was intended to conceal activity. A real investigation would require independently acquired evidence, verified handling procedures, and relevant host-side artifacts such as USB connection history and user logon records.
 
 ## 15. Limitations
 
