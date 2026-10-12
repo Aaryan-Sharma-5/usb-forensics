@@ -172,9 +172,11 @@ explanation. It led to the cross-tool correlation in Section 11. Details:
 4. Strings found the metadata at offsets **825545–826492**, which is inside
    revision 2, immediately after Foremost's carve. The metadata is on the
    drive; carving missed it.
-5. The first 616 bytes of the original document hash to `6001609b…9275`, the
-   exact hash of the recovered file. So the recovered PDF is genuine and
-   unaltered, just incomplete.
+5. The 616-byte size, page text, trailer structure and raw-image offsets are
+   consistent with the recovered PDF being the first revision of the reference
+   document. To claim an exact prefix match, run the `head -c 616` hash check
+   in `COMMANDS.md` on this case image; the report's full-file recovery remains
+   a follow-up until that run is verified.
 
 **Follow-up (verified on a replica image, to be run on Kali).** Carving from
 the PDF header to the second `%%EOF` (4,569 bytes) recovers a file whose
