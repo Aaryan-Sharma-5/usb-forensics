@@ -69,10 +69,7 @@ exiftool output/foremost_recovered/png/00001610.png > evidence/recovered_png_met
 ```
 
 ## Interpretation
-- The empty result does **not** mean the document had no metadata. ExifTool
-  wrote the metadata as an incremental update appended after the first
-  `%%EOF`, and Foremost stopped carving at that first `%%EOF`. The recovered
-  616-byte file is the original revision, whose trailer has no `/Info` entry.
+- The empty result does **not** mean the reference document had no metadata. The observed raw-image offsets and the recovered trailer are consistent with ExifTool's metadata update being appended after the first `%%EOF`, beyond the 616-byte Foremost carve. The recovered fragment has no `/Info` entry. Run the prefix hash check in `COMMANDS.md` section 9 before claiming a direct byte-for-byte match with the reference document's first revision.
 - `strings` found the same Title, Author, Subject and Keywords values on the raw
   image at offsets 825545–826492, just past the end of the carved file. So the
   metadata does exist on the USB.
