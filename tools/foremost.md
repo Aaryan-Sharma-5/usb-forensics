@@ -58,17 +58,14 @@ xxd -l 16 output/foremost_recovered/png/00001610.png
 ```
 
 ## Interpretation
-- The PDF is not visible on the drive but was recovered, so it was deleted
-  before seizure. The PNG is the visible decoy `beach_trip.png`. Foremost
-  recovers allocated and deleted files alike.
+- The PDF fragment is not visible in the post-deletion directory listing, which is consistent with the deletion simulated during preparation. The PNG is the visible decoy `beach_trip.png`. Foremost can recover data by signatures without relying on directory entries.
 - **The recovered PDF is incomplete.** The prepared original was 4,569 bytes
   (SHA-256 `cec3f686…454c`) but Foremost recovered 616 bytes (`6001609b…9275`).
   ExifTool saved the document metadata as a PDF *incremental update*, which
   appends a second section ending in its own `%%EOF`. Foremost stops at the
   first `%%EOF` (offset 825442), so it recovered only the original first
   revision, which has no metadata.
-- The first 616 bytes of the original file hash to exactly `6001609b…9275`,
-  which confirms the recovered file is the untouched first revision.
+- The 616-byte size, page text, trailer structure and raw-image offsets are consistent with the recovered fragment being the first revision. Run the prefix hash check in `COMMANDS.md` section 9 on this case image before claiming an exact byte-for-byte prefix match.
 
 ## Follow-up: Recover the Complete PDF
 Carving from the PDF header to the last `%%EOF` recovers the whole file. These
