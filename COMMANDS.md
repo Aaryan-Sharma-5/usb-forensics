@@ -356,6 +356,7 @@ sha256sum \
   | tee evidence/final_hashes.sha256
 
 sha256sum -c evidence/recovered_files.sha256
+sha256sum -c evidence/evidence_integrity.sha256
 ```
 ```text
 === Foremost ===
