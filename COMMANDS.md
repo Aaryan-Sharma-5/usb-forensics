@@ -372,9 +372,9 @@ GNU strings (GNU Binutils for Debian) 2.47
 fdf040aaee9270aef6cf03752d51615cf6025c72081820fe0945f0c9c9cbdd9c  output/foremost_recovered/png/00001610.png
 output/foremost_recovered/pdf/00001611.pdf: OK
 output/foremost_recovered/png/00001610.png: OK
+usb_evidence.raw: OK
 ```
-The image hash after analysis matches the hash recorded in step 3, so the
-evidence was not modified.
+The recovered files match their saved hashes, and the image matches its recorded baseline hash. This supports the integrity check for the synthetic image during this workflow.
 
 Screenshots: `01_tool_versions.png`, `15_final_hash_verification.png`
 
